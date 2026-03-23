@@ -1,28 +1,99 @@
-This is a Kotlin Multiplatform project targeting Desktop (JVM).
+# AutoService CRM Desktop
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-    - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-    - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-      For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-      the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-      Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-      folder is the appropriate location.
+Desktop-приложение CRM для автосервиса, разработанное на **Kotlin Multiplatform / Compose Multiplatform Desktop**.  
+Приложение предназначено для автоматизации основных процессов автосервиса: ведения клиентов, автомобилей, мастеров, услуг, запчастей, заказов и оплат.
 
-### Build and Run Desktop (JVM) Application
+## Возможности
 
-To build and run the development version of the desktop app, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
+На текущем этапе реализован MVP-функционал системы:
 
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:run
-  ```
+- авторизация пользователя;
+- просмотр списков:
+    - клиентов;
+    - автомобилей;
+    - мастеров;
+    - услуг;
+    - запчастей;
+    - заказов;
+- добавление новых:
+    - клиентов;
+    - автомобилей;
+    - мастеров;
+    - услуг;
+    - запчастей;
+    - заказов;
+- формирование состава заказа:
+    - добавление услуг;
+    - добавление запчастей;
+    - добавление оплат;
+- просмотр детальной информации по заказу;
+- интеграция с backend API;
+- автоматическое обновление данных после выполнения операций.
 
----
+## Технологии
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+### Клиентская часть
+- **Kotlin**
+- **Compose Multiplatform Desktop**
+- **Koin** — внедрение зависимостей
+- **Ktor Client** — взаимодействие с backend API
+- **Material 3** — оформление интерфейса
+
+### Серверная часть
+Проект desktop-приложения работает совместно с backend-приложением на:
+- **Ktor**
+- **PostgreSQL**
+
+## Архитектура проекта
+
+Проект организован по feature-based структуре.  
+Для каждой функциональной области используются три уровня:
+
+- `data` — API, request/response модели, репозитории;
+- `presentation` — состояние экранов, действия пользователя, store-компоненты;
+- `ui` — composable-экраны, таблицы, диалоги и другие элементы интерфейса.
+
+### Структура проекта
+
+```text
+composeApp/src/commonMain/kotlin/com.example.autoservice_desktop
+├── core
+│   ├── network
+│   ├── ui
+│   │   └── theme
+│   └── util
+├── di
+├── features
+│   ├── auth
+│   │   └── ui
+│   ├── cars
+│   │   ├── data
+│   │   ├── presentation
+│   │   └── ui
+│   ├── clients
+│   │   ├── data
+│   │   ├── presentation
+│   │   └── ui
+│   ├── masters
+│   │   ├── data
+│   │   ├── presentation
+│   │   └── ui
+│   ├── orders
+│   │   ├── data
+│   │   ├── presentation
+│   │   └── ui
+│   ├── parts
+│   │   ├── data
+│   │   ├── presentation
+│   │   └── ui
+│   └── services
+│       ├── data
+│       ├── presentation
+│       └── ui
+├── navigation
+├── resources
+├── App.kt
+└── Main.kt
+```
+
+### P.S. Коммиты в master, потому что разработка велась 1 человеком. Автор: Родион Пиперов
