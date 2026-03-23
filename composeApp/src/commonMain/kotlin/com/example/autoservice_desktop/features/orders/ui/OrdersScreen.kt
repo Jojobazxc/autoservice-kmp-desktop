@@ -5,14 +5,36 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.autoservice_desktop.core.ui.AppTableToolbar
+import com.example.autoservice_desktop.core.ui.formatOrderStatus
 import com.example.autoservice_desktop.core.ui.theme.AppColors
 import com.example.autoservice_desktop.features.orders.presentation.OrderDetailsUi
 import com.example.autoservice_desktop.features.orders.presentation.OrderListItemUi
@@ -30,7 +52,8 @@ internal fun OrdersScreen(
     }
 
     Column(
-        modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         Text(
             text = "Заказы",
@@ -38,75 +61,94 @@ internal fun OrdersScreen(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        OrdersToolbar(
-            onRefresh = { store.dispatch(OrdersAction.Load) })
+        AppTableToolbar(
+            searchPlaceholder = "Поиск появится позже",
+            onAdd = { store.dispatch(OrdersAction.OpenCreateDialog) },
+            onRefresh = { store.dispatch(OrdersAction.Load) }
+        )
 
         when {
             state.isLoadingList -> {
-                Text("Загрузка заказов...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = "Загрузка заказов...",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             state.listError != null -> {
                 Text(
-                    text = "Ошибка: ${state.listError}", color = MaterialTheme.colorScheme.error
+                    text = "Ошибка: ${state.listError}",
+                    color = MaterialTheme.colorScheme.error
                 )
             }
 
             else -> {
                 Row(
-                    modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     OrdersTable(
-                        items = state.items, selectedOrderId = state.selectedOrderId, onOrderSelected = { id ->
+                        items = state.items,
+                        selectedOrderId = state.selectedOrderId,
+                        onOrderSelected = { id ->
                             store.dispatch(OrdersAction.SelectOrder(id))
-                        }, modifier = Modifier.weight(1.4f)
+                        },
+                        modifier = Modifier.weight(1.4f)
                     )
 
                     OrderDetailsPanel(
                         details = state.selectedOrderDetails,
                         isLoading = state.isLoadingDetails,
                         error = state.detailsError,
+                        onAddService = { store.dispatch(OrdersAction.OpenAddServiceDialog) },
+                        onAddPart = { store.dispatch(OrdersAction.OpenAddPartDialog) },
+                        onAddPayment = { store.dispatch(OrdersAction.OpenAddPaymentDialog) },
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
         }
     }
-}
 
-@Composable
-private fun OrdersToolbar(
-    onRefresh: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        OutlinedTextField(
-            value = "",
-            onValueChange = {},
-            enabled = false,
-            label = { Text("Фильтры появятся позже") },
-            modifier = Modifier.weight(1f)
+    if (state.isCreateDialogOpen) {
+        CreateOrderDialog(
+            state = state,
+            onAction = store::dispatch
         )
+    }
 
-        Button(
-            onClick = onRefresh, colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary
-            )
-        ) {
-            Text("Обновить")
-        }
+    if (state.isAddServiceDialogOpen) {
+        AddOrderServiceDialog(
+            state = state,
+            onAction = store::dispatch
+        )
+    }
+
+    if (state.isAddPartDialogOpen) {
+        AddOrderPartDialog(
+            state = state,
+            onAction = store::dispatch
+        )
+    }
+
+    if (state.isAddPaymentDialogOpen) {
+        AddOrderPaymentDialog(
+            state = state,
+            onAction = store::dispatch
+        )
     }
 }
-
 @Composable
 private fun OrdersTable(
-    items: List<OrderListItemUi>, selectedOrderId: Long?, onOrderSelected: (Long) -> Unit, modifier: Modifier = Modifier
+    items: List<OrderListItemUi>,
+    selectedOrderId: Long?,
+    onOrderSelected: (Long) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.fillMaxHeight().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier
+            .fillMaxHeight()
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant),
         tonalElevation = 1.dp,
         shape = MaterialTheme.shapes.large
     ) {
@@ -123,7 +165,8 @@ private fun OrdersTable(
                         index = index + 1,
                         order = order,
                         isSelected = selectedOrderId == order.id,
-                        onClick = { onOrderSelected(order.id) })
+                        onClick = { onOrderSelected(order.id) }
+                    )
                 }
             }
         }
@@ -133,8 +176,11 @@ private fun OrdersTable(
 @Composable
 private fun OrdersTableHeader() {
     Row(
-        modifier = Modifier.fillMaxWidth().background(AppColors.TableHeaderBackground)
-            .padding(vertical = 14.dp, horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(AppColors.TableHeaderBackground)
+            .padding(vertical = 14.dp, horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         HeaderCell("ID", 0.6f)
         HeaderCell("Клиент", 1.45f)
@@ -148,7 +194,10 @@ private fun OrdersTableHeader() {
 
 @Composable
 private fun OrderTableRow(
-    index: Int, order: OrderListItemUi, isSelected: Boolean, onClick: () -> Unit
+    index: Int,
+    order: OrderListItemUi,
+    isSelected: Boolean,
+    onClick: () -> Unit
 ) {
     val defaultBackground = when {
         isSelected -> AppColors.SelectedItemBackground
@@ -166,9 +215,16 @@ private fun OrderTableRow(
     }
 
     Row(
-        modifier = Modifier.fillMaxWidth().background(background).clickable(
-                interactionSource = interactionSource, indication = null, onClick = onClick
-            ).padding(vertical = 12.dp, horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(background)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(vertical = 12.dp, horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Cell(order.id.toString(), 0.6f)
         Cell(order.clientDisplay, 1.45f)
@@ -182,45 +238,64 @@ private fun OrderTableRow(
 
 @Composable
 private fun OrderDetailsPanel(
-    details: OrderDetailsUi?, isLoading: Boolean, error: String?, modifier: Modifier = Modifier
+    details: OrderDetailsUi?,
+    isLoading: Boolean,
+    error: String?,
+    onAddService: () -> Unit,
+    onAddPart: () -> Unit,
+    onAddPayment: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.fillMaxHeight().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier
+            .fillMaxHeight()
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant),
         tonalElevation = 1.dp,
         shape = MaterialTheme.shapes.large
     ) {
         when {
             isLoading -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("Загрузка деталей...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "Загрузка деталей...",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
             error != null -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Ошибка: $error", color = MaterialTheme.colorScheme.error
+                        text = "Ошибка: $error",
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }
 
             details == null -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Выберите заказ", color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "Выберите заказ",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
             else -> {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item {
                         Row(
@@ -249,10 +324,13 @@ private fun OrderDetailsPanel(
 
                     item {
                         Row(
-                            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             SummaryCard(
-                                title = "Сумма", value = "${details.totalAmount} ₽", modifier = Modifier.weight(1f)
+                                title = "Сумма",
+                                value = "${details.totalAmount} ₽",
+                                modifier = Modifier.weight(1f)
                             )
                             SummaryCard(
                                 title = "Услуги",
@@ -273,6 +351,36 @@ private fun OrderDetailsPanel(
                     }
 
                     item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Button(
+                                onClick = onAddService,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Добавить услугу")
+                            }
+
+                            Button(
+                                onClick = onAddPart,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Добавить запчасть")
+                            }
+                        }
+                    }
+
+                    item {
+                        Button(
+                            onClick = onAddPayment,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Добавить оплату")
+                        }
+                    }
+
+                    item {
                         DetailCard(title = "Основная информация") {
                             TwoColumnDetails(
                                 left = listOf(
@@ -280,7 +388,8 @@ private fun OrderDetailsPanel(
                                     "Автомобиль" to details.carDisplay,
                                     "Мастер" to details.masterDisplay,
                                     "Статус" to details.status
-                                ), right = listOf(
+                                ),
+                                right = listOf(
                                     "Создан" to details.createdAt,
                                     "План завершения" to details.plannedCompletionAt,
                                     "Завершен" to details.completedAt,
@@ -360,7 +469,9 @@ private fun OrderDetailsPanel(
 
 @Composable
 private fun SummaryCard(
-    title: String, value: String, modifier: Modifier = Modifier
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier,
@@ -369,7 +480,9 @@ private fun SummaryCard(
         shape = MaterialTheme.shapes.medium
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
@@ -378,16 +491,18 @@ private fun SummaryCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
 }
 
-
 @Composable
 private fun DetailCard(
-    title: String, content: @Composable () -> Unit
+    title: String,
+    content: @Composable () -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -396,10 +511,15 @@ private fun DetailCard(
         color = MaterialTheme.colorScheme.surface
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -411,13 +531,16 @@ private fun DetailCard(
 
 @Composable
 private fun TwoColumnDetails(
-    left: List<Pair<String, String>>, right: List<Pair<String, String>>
+    left: List<Pair<String, String>>,
+    right: List<Pair<String, String>>
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Column(
-            modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             left.forEach { (label, value) ->
                 DetailRow(label, value)
@@ -425,7 +548,8 @@ private fun TwoColumnDetails(
         }
 
         Column(
-            modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             right.forEach { (label, value) ->
                 DetailRow(label, value)
@@ -436,10 +560,12 @@ private fun TwoColumnDetails(
 
 @Composable
 private fun DetailRow(
-    label: String, value: String
+    label: String,
+    value: String
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text(
             text = "$label:",
@@ -462,23 +588,28 @@ private fun DetailTextBlock(
     text: String
 ) {
     Text(
-        text = text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurface
     )
 }
 
 @Composable
 private fun EmptySection() {
     Text(
-        text = "-", color = MaterialTheme.colorScheme.onSurfaceVariant
+        text = "-",
+        color = MaterialTheme.colorScheme.onSurfaceVariant
     )
 }
 
 @Composable
 private fun LineItemRow(
-    title: String, value: String
+    title: String,
+    value: String
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text(
             text = title,
@@ -498,82 +629,99 @@ private fun LineItemRow(
 
 @Composable
 private fun RowScope.HeaderCell(
-    text: String, weight: Float
+    text: String,
+    weight: Float
 ) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.weight(weight).padding(end = 8.dp)
+        modifier = Modifier
+            .weight(weight)
+            .padding(end = 8.dp)
     )
 }
 
 @Composable
 private fun RowScope.Cell(
-    text: String, weight: Float
+    text: String,
+    weight: Float
 ) {
     Text(
         text = text,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.weight(weight).padding(end = 8.dp)
+        modifier = Modifier
+            .weight(weight)
+            .padding(end = 8.dp)
     )
 }
 
 @Composable
 private fun RowScope.PriceCell(
-    value: String, weight: Float
+    value: String,
+    weight: Float
 ) {
     Text(
         text = "$value ₽",
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.weight(weight).padding(end = 8.dp)
+        modifier = Modifier
+            .weight(weight)
+            .padding(end = 8.dp)
     )
 }
-
 
 @Composable
 private fun StatusBadge(status: String) {
     val background = MaterialTheme.colorScheme.surfaceVariant
 
     val textColor = when (status) {
-        "Оплачен" -> AppColors.Success
-        "Завершён" -> AppColors.Primary
-        "В работе" -> AppColors.Warning
-        "Отменён" -> MaterialTheme.colorScheme.error
+        formatOrderStatus("PAID") -> AppColors.Success
+        formatOrderStatus("COMPLETED") -> AppColors.Primary
+        formatOrderStatus("IN_PROGRESS") -> AppColors.Warning
+        formatOrderStatus("CANCELED") -> MaterialTheme.colorScheme.error
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     Row(
-        modifier = Modifier.background(background, MaterialTheme.shapes.small)
+        modifier = Modifier
+            .background(background, MaterialTheme.shapes.small)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Box(
-            modifier = Modifier.size(8.dp).background(textColor, MaterialTheme.shapes.small)
+            modifier = Modifier
+                .size(8.dp)
+                .background(textColor, MaterialTheme.shapes.small)
         )
         Text(
-            text = status, color = textColor, style = MaterialTheme.typography.labelLarge
+            text = status,
+            color = textColor,
+            style = MaterialTheme.typography.labelLarge
         )
     }
 }
 
 @Composable
 private fun RowScope.StatusCell(
-    status: String, weight: Float
+    status: String,
+    weight: Float
 ) {
     Row(
-        modifier = Modifier.weight(weight).padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier
+            .weight(weight)
+            .padding(end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         val background = MaterialTheme.colorScheme.surfaceVariant
 
         val textColor = when (status) {
-            "Оплачен" -> AppColors.Success
-            "Завершён" -> AppColors.Primary
-            "В работе" -> AppColors.Warning
-            "Отменён" -> MaterialTheme.colorScheme.error
+            formatOrderStatus("PAID") -> AppColors.Success
+            formatOrderStatus("COMPLETED") -> AppColors.Primary
+            formatOrderStatus("IN_PROGRESS") -> AppColors.Warning
+            formatOrderStatus("CANCELED") -> MaterialTheme.colorScheme.error
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
 
@@ -581,7 +729,8 @@ private fun RowScope.StatusCell(
             text = status,
             color = textColor,
             style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.background(background, MaterialTheme.shapes.small)
+            modifier = Modifier
+                .background(background, MaterialTheme.shapes.small)
                 .padding(horizontal = 10.dp, vertical = 6.dp)
         )
     }

@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.autoservice_desktop.core.ui.AppTableToolbar
 import com.example.autoservice_desktop.core.ui.formatClientStatus
 import com.example.autoservice_desktop.core.ui.theme.AppColors
 import com.example.autoservice_desktop.features.clients.data.ClientDto
@@ -47,9 +48,10 @@ internal fun ClientsScreen(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        ClientToolbar(
-            onRefresh = { store.dispatch(ClientsAction.Load) },
-            onAdd = { store.dispatch(ClientsAction.OpenCreateDialog) }
+        AppTableToolbar(
+            searchPlaceholder = "Поиск появится позже",
+            onAdd = { store.dispatch(ClientsAction.OpenCreateDialog) },
+            onRefresh = { store.dispatch(ClientsAction.Load) }
         )
 
         when {
@@ -68,36 +70,6 @@ internal fun ClientsScreen(
                 ClientsTable(items = filteredItems)
             }
         }
-    }
-}
-
-@Composable
-private fun ClientToolbar(
-    onRefresh: () -> Unit,
-    onAdd: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        OutlinedTextField(
-            value = "",
-            onValueChange = {},
-            enabled = false,
-            label = { Text("Поиск появится позже") },
-            modifier = Modifier.weight(1f)
-        )
-
-        Button(onClick = onRefresh) {
-            Text("Обновить")
-        }
-
-        Button(onClick = onAdd) {
-            Text("Добавить")
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
     }
 }
 

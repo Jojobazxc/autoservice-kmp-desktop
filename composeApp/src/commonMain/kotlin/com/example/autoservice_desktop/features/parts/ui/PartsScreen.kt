@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.autoservice_desktop.core.ui.AppTableToolbar
 import com.example.autoservice_desktop.core.ui.formatPartUnit
 import com.example.autoservice_desktop.core.ui.theme.AppColors
 import com.example.autoservice_desktop.features.parts.data.PartDto
@@ -38,7 +39,9 @@ internal fun PartsScreen(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        PartsToolbar(
+        AppTableToolbar(
+            searchPlaceholder = "Поиск появится позже",
+            onAdd = { store.dispatch(PartsAction.OpenCreateDialog) },
             onRefresh = { store.dispatch(PartsAction.Load) }
         )
 
@@ -59,45 +62,12 @@ internal fun PartsScreen(
             }
         }
     }
-}
 
-@Composable
-private fun PartsToolbar(
-    onRefresh: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        OutlinedTextField(
-            value = "",
-            onValueChange = {},
-            enabled = false,
-            label = { Text("Поиск появится позже") },
-            modifier = Modifier.weight(1f)
+    if (state.isCreateDialogOpen) {
+        CreatePartDialog(
+            state = state,
+            onAction = store::dispatch
         )
-
-        Button(
-            onClick = onRefresh,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
-        ) {
-            Text("Обновить")
-        }
-
-        Button(
-            onClick = {},
-            enabled = false,
-            colors = ButtonDefaults.buttonColors(
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        ) {
-            Text("Добавить")
-        }
     }
 }
 

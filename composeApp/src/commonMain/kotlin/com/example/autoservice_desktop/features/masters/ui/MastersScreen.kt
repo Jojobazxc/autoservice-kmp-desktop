@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.autoservice_desktop.core.ui.AppTableToolbar
 import com.example.autoservice_desktop.core.ui.formatEmploymentStatus
 import com.example.autoservice_desktop.core.ui.theme.AppColors
 import com.example.autoservice_desktop.features.masters.data.MasterDto
@@ -45,9 +46,10 @@ internal fun MastersScreen(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        MastersToolbar(
-            onRefresh = { store.dispatch(MastersAction.Load) },
-            onAdd = { store.dispatch(MastersAction.OpenCreateDialog) }
+        AppTableToolbar(
+            searchPlaceholder = "Поиск появится позже",
+            onAdd = { store.dispatch(MastersAction.OpenCreateDialog) },
+            onRefresh = { store.dispatch(MastersAction.Load) }
         )
 
         when {
@@ -65,46 +67,6 @@ internal fun MastersScreen(
             else -> {
                 MastersTable(items = state.items)
             }
-        }
-    }
-}
-
-@Composable
-private fun MastersToolbar(
-    onRefresh: () -> Unit,
-    onAdd: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        OutlinedTextField(
-            value = "",
-            onValueChange = {},
-            enabled = false,
-            label = { Text("Поиск появится позже") },
-            modifier = Modifier.weight(1f)
-        )
-
-        Button(
-            onClick = onRefresh,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
-        ) {
-            Text("Обновить")
-        }
-
-        Button(
-            onClick = onAdd,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
-        ) {
-            Text("Добавить")
         }
     }
 }

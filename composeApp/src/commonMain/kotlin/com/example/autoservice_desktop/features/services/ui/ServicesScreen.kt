@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.autoservice_desktop.core.ui.AppTableToolbar
 import com.example.autoservice_desktop.core.ui.theme.AppColors
 import com.example.autoservice_desktop.features.services.data.ServiceDto
 import com.example.autoservice_desktop.features.services.presentation.ServicesAction
@@ -28,7 +29,8 @@ internal fun ServicesScreen(
     }
 
     Column(
-        modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(18.dp)
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         Text(
             text = "Услуги",
@@ -36,8 +38,11 @@ internal fun ServicesScreen(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        ServicesToolbar(
-            onRefresh = { store.dispatch(ServicesAction.Load) })
+        AppTableToolbar(
+            searchPlaceholder = "Поиск появится позже",
+            onAdd = { store.dispatch(ServicesAction.OpenCreateDialog) },
+            onRefresh = { store.dispatch(ServicesAction.Load) }
+        )
 
         when {
             state.isLoading -> {
@@ -46,7 +51,8 @@ internal fun ServicesScreen(
 
             state.error != null -> {
                 Text(
-                    text = "Ошибка: ${state.error}", color = MaterialTheme.colorScheme.error
+                    text = "Ошибка: ${state.error}",
+                    color = MaterialTheme.colorScheme.error
                 )
             }
 
@@ -55,41 +61,12 @@ internal fun ServicesScreen(
             }
         }
     }
-}
 
-@Composable
-private fun ServicesToolbar(
-    onRefresh: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        OutlinedTextField(
-            value = "",
-            onValueChange = {},
-            enabled = false,
-            label = { Text("Поиск появится позже") },
-            modifier = Modifier.weight(1f)
+    if (state.isCreateDialogOpen) {
+        CreateServiceDialog(
+            state = state,
+            onAction = store::dispatch
         )
-
-        Button(
-            onClick = onRefresh, colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary
-            )
-        ) {
-            Text("Обновить")
-        }
-
-        Button(
-            onClick = {}, enabled = false, colors = ButtonDefaults.buttonColors(
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        ) {
-            Text("Добавить")
-        }
     }
 }
 

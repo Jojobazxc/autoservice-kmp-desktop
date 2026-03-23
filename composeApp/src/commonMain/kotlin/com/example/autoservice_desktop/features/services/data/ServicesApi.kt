@@ -1,9 +1,10 @@
 package com.example.autoservice_desktop.features.services.data
 
 import com.example.autoservice_desktop.core.network.ApiConfig
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.get
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 
 internal class ServicesApi(
     private val httpClient: HttpClient
@@ -11,6 +12,15 @@ internal class ServicesApi(
     suspend fun getServices(): List<ServiceDto> {
         return httpClient
             .get("${ApiConfig.BASE_URL}/services")
-            .body<List<ServiceDto>>()
+            .body()
+    }
+
+    suspend fun createService(request: CreateServiceRequest): ServiceDto {
+        return httpClient
+            .post("${ApiConfig.BASE_URL}/services") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+            .body()
     }
 }
