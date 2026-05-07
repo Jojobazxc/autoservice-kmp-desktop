@@ -9,6 +9,5 @@ internal data class CreateOrderRequest(
     val masterId: Long? = null,
     val description: String? = null,
     val comment: String? = null,
-    val status: String = "CREATED",
     val plannedCompletionAt: String? = null
 )

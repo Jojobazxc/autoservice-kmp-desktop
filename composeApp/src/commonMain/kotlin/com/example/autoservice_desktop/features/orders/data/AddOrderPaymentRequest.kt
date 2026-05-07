@@ -5,6 +5,5 @@ import kotlinx.serialization.Serializable
 @Serializable
 internal data class AddOrderPaymentRequest(
     val amount: String,
-    val paymentMethod: String,
-    val paymentStatus: String = "PAID"
+    val paymentMethod: String
 )

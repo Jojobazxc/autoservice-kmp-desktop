@@ -15,7 +15,6 @@ internal data class MastersState(
     val experienceYearsInput: String = "",
     val phoneInput: String = "",
     val emailInput: String = "",
-    val employmentStatusInput: String = "ACTIVE",
 
     val createError: String? = null
 )

@@ -9,6 +9,12 @@ internal class OrdersRepository(
 
     suspend fun createOrder(request: CreateOrderRequest): OrderDto = api.createOrder(request)
 
+    suspend fun updateOrder(orderId: Long, request: UpdateOrderRequest): OrderDto = api.updateOrder(orderId, request)
+
+    suspend fun completeOrder(orderId: Long): OrderDto = api.completeOrder(orderId)
+
+    suspend fun cancelOrder(orderId: Long): OrderDto = api.cancelOrder(orderId)
+
     suspend fun addServiceToOrder(
         orderId: Long,
         request: AddOrderServiceRequest

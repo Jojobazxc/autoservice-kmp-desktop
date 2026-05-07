@@ -1,6 +1,10 @@
 package com.example.autoservice_desktop.di
 
 import com.example.autoservice_desktop.core.network.createHttpClient
+import com.example.autoservice_desktop.features.auth.data.AuthApi
+import com.example.autoservice_desktop.features.auth.data.AuthRepository
+import com.example.autoservice_desktop.features.auth.data.AuthSessionManager
+import com.example.autoservice_desktop.features.auth.presentation.AuthStore
 import com.example.autoservice_desktop.features.cars.data.CarsApi
 import com.example.autoservice_desktop.features.cars.data.CarsRepository
 import com.example.autoservice_desktop.features.cars.presentation.CarsStore
@@ -16,6 +20,12 @@ import com.example.autoservice_desktop.features.orders.presentation.OrdersStore
 import com.example.autoservice_desktop.features.parts.data.PartsApi
 import com.example.autoservice_desktop.features.parts.data.PartsRepository
 import com.example.autoservice_desktop.features.parts.presentation.PartsStore
+import com.example.autoservice_desktop.features.payments.data.AccountingReportsApi
+import com.example.autoservice_desktop.features.payments.data.AccountingReportsRepository
+import com.example.autoservice_desktop.features.payments.data.PaymentsApi
+import com.example.autoservice_desktop.features.payments.data.PaymentsRepository
+import com.example.autoservice_desktop.features.payments.presentation.PaymentsStore
+import com.example.autoservice_desktop.features.reports.presentation.AccountingReportsStore
 import com.example.autoservice_desktop.features.services.data.ServicesApi
 import com.example.autoservice_desktop.features.services.data.ServicesRepository
 import com.example.autoservice_desktop.features.services.presentation.ServicesStore
@@ -23,9 +33,14 @@ import com.example.autoservice_desktop.navigation.AppRouter
 import org.koin.dsl.module
 
 internal val appModule = module {
-    single { createHttpClient() }
+    single { AuthSessionManager() }
+    single { createHttpClient(get()) }
 
     single { AppRouter() }
+
+    single { AuthApi(get()) }
+    single { AuthRepository(get(), get()) }
+    factory { AuthStore(get()) }
 
     single { ClientsApi(get()) }
     single { ClientsRepository(get()) }
@@ -51,5 +66,11 @@ internal val appModule = module {
     single { OrdersRepository(get()) }
     factory { OrdersStore(get(), get(), get(), get(), get(), get()) }
 
+    single { PaymentsApi(get()) }
+    single { PaymentsRepository(get()) }
+    single { AccountingReportsApi(get()) }
+    single { AccountingReportsRepository(get()) }
+    factory { PaymentsStore(get()) }
+    factory { AccountingReportsStore(get(), get()) }
 
 }

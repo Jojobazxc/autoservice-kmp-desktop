@@ -10,8 +10,8 @@ internal fun formatClientStatus(status: String): String {
 
 internal fun formatEmploymentStatus(status: String): String {
     return when (status) {
-        "ACTIVE" -> "Активен"
-        "INACTIVE" -> "Неактивен"
+        "FREE" -> "Свободен"
+        "BUSY" -> "Занят"
         else -> status
     }
 }

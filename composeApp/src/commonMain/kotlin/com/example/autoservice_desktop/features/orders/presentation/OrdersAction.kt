@@ -11,9 +11,19 @@ internal sealed interface OrdersAction {
     data class ChangeCreateMaster(val masterId: Long?) : OrdersAction
     data class ChangeCreateDescription(val value: String) : OrdersAction
     data class ChangeCreateComment(val value: String) : OrdersAction
-    data class ChangeCreateStatus(val value: String) : OrdersAction
     data class ChangeCreatePlannedCompletionAt(val value: String) : OrdersAction
     data object SubmitCreate : OrdersAction
+    data object OpenEditDialog : OrdersAction
+    data object CloseEditDialog : OrdersAction
+    data class ChangeEditClient(val clientId: Long?) : OrdersAction
+    data class ChangeEditCar(val carId: Long?) : OrdersAction
+    data class ChangeEditMaster(val masterId: Long?) : OrdersAction
+    data class ChangeEditDescription(val value: String) : OrdersAction
+    data class ChangeEditComment(val value: String) : OrdersAction
+    data class ChangeEditPlannedCompletionAt(val value: String) : OrdersAction
+    data object SubmitEdit : OrdersAction
+    data object CompleteSelectedOrder : OrdersAction
+    data object CancelSelectedOrder : OrdersAction
 
     data object OpenAddServiceDialog : OrdersAction
     data object CloseAddServiceDialog : OrdersAction
@@ -33,6 +43,5 @@ internal sealed interface OrdersAction {
     data object CloseAddPaymentDialog : OrdersAction
     data class ChangeAddPaymentAmount(val value: String) : OrdersAction
     data class ChangeAddPaymentMethod(val value: String) : OrdersAction
-    data class ChangeAddPaymentStatus(val value: String) : OrdersAction
     data object SubmitAddPayment : OrdersAction
 }

@@ -11,6 +11,8 @@ internal data class OrdersState(
 
     val isCreateDialogOpen: Boolean = false,
     val createForm: CreateOrderForm = CreateOrderForm(),
+    val isEditDialogOpen: Boolean = false,
+    val editForm: CreateOrderForm = CreateOrderForm(),
 
     val clientOptions: List<ReferenceOptionUi> = emptyList(),
     val masterOptions: List<ReferenceOptionUi> = emptyList(),

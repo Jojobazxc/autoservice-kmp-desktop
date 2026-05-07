@@ -6,7 +6,6 @@ internal data class CreateOrderForm(
     val masterId: Long? = null,
     val description: String = "",
     val comment: String = "",
-    val status: String = "CREATED",
     val plannedCompletionAt: String = "",
     val isSubmitting: Boolean = false,
     val errorMessage: String? = null
@@ -23,7 +22,6 @@ internal data class CreateOrderItemForm(
 internal data class CreateOrderPaymentForm(
     val amount: String = "",
     val paymentMethod: String = "CASH",
-    val paymentStatus: String = "PAID",
     val isSubmitting: Boolean = false,
     val errorMessage: String? = null
 )

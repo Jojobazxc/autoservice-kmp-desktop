@@ -5,6 +5,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
@@ -30,6 +31,27 @@ internal class OrdersApi(
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
+            .body()
+    }
+
+    suspend fun updateOrder(orderId: Long, request: UpdateOrderRequest): OrderDto {
+        return httpClient
+            .put("${ApiConfig.BASE_URL}/orders/$orderId") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+            .body()
+    }
+
+    suspend fun completeOrder(orderId: Long): OrderDto {
+        return httpClient
+            .post("${ApiConfig.BASE_URL}/orders/$orderId/complete")
+            .body()
+    }
+
+    suspend fun cancelOrder(orderId: Long): OrderDto {
+        return httpClient
+            .post("${ApiConfig.BASE_URL}/orders/$orderId/cancel")
             .body()
     }
 
