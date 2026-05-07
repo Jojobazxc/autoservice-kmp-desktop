@@ -3,6 +3,7 @@ package com.example.autoservice_desktop.features.orders.presentation
 import com.example.autoservice_desktop.core.ui.formatOrderStatus
 import com.example.autoservice_desktop.core.ui.formatPaymentMethod
 import com.example.autoservice_desktop.core.ui.formatPaymentStatus
+import com.example.autoservice_desktop.core.ui.formatRuDateTime
 import com.example.autoservice_desktop.features.cars.data.CarDto
 import com.example.autoservice_desktop.features.cars.data.CarsRepository
 import com.example.autoservice_desktop.features.clients.data.ClientDto
@@ -15,6 +16,7 @@ import com.example.autoservice_desktop.features.orders.data.AddOrderServiceReque
 import com.example.autoservice_desktop.features.orders.data.CreateOrderRequest
 import com.example.autoservice_desktop.features.orders.data.OrderDetailsDto
 import com.example.autoservice_desktop.features.orders.data.OrdersRepository
+import com.example.autoservice_desktop.features.orders.data.UpdateOrderRequest
 import com.example.autoservice_desktop.features.parts.data.PartDto
 import com.example.autoservice_desktop.features.parts.data.PartsRepository
 import com.example.autoservice_desktop.features.services.data.ServiceDto
@@ -59,9 +61,19 @@ internal class OrdersStore(
             is OrdersAction.ChangeCreateMaster -> changeCreateMaster(action.masterId)
             is OrdersAction.ChangeCreateDescription -> changeCreateDescription(action.value)
             is OrdersAction.ChangeCreateComment -> changeCreateComment(action.value)
-            is OrdersAction.ChangeCreateStatus -> changeCreateStatus(action.value)
             is OrdersAction.ChangeCreatePlannedCompletionAt -> changeCreatePlannedCompletionAt(action.value)
             OrdersAction.SubmitCreate -> submitCreate()
+            OrdersAction.OpenEditDialog -> openEditDialog()
+            OrdersAction.CloseEditDialog -> closeEditDialog()
+            is OrdersAction.ChangeEditClient -> changeEditClient(action.clientId)
+            is OrdersAction.ChangeEditCar -> changeEditCar(action.carId)
+            is OrdersAction.ChangeEditMaster -> changeEditMaster(action.masterId)
+            is OrdersAction.ChangeEditDescription -> changeEditDescription(action.value)
+            is OrdersAction.ChangeEditComment -> changeEditComment(action.value)
+            is OrdersAction.ChangeEditPlannedCompletionAt -> changeEditPlannedCompletionAt(action.value)
+            OrdersAction.SubmitEdit -> submitEdit()
+            OrdersAction.CompleteSelectedOrder -> completeSelectedOrder()
+            OrdersAction.CancelSelectedOrder -> cancelSelectedOrder()
 
             OrdersAction.OpenAddServiceDialog -> openAddServiceDialog()
             OrdersAction.CloseAddServiceDialog -> closeAddServiceDialog()
@@ -81,7 +93,6 @@ internal class OrdersStore(
             OrdersAction.CloseAddPaymentDialog -> closeAddPaymentDialog()
             is OrdersAction.ChangeAddPaymentAmount -> changeAddPaymentAmount(action.value)
             is OrdersAction.ChangeAddPaymentMethod -> changeAddPaymentMethod(action.value)
-            is OrdersAction.ChangeAddPaymentStatus -> changeAddPaymentStatus(action.value)
             OrdersAction.SubmitAddPayment -> submitAddPayment()
         }
     }
@@ -118,7 +129,8 @@ internal class OrdersStore(
                             "-"
                         },
                         status = formatOrderStatus(order.status),
-                        createdAt = formatDateTime(order.createdAt),
+                        rawStatus = order.status,
+                        createdAt = formatRuDateTime(order.createdAt),
                         totalAmount = order.totalAmount
                     )
                 }
@@ -295,15 +307,6 @@ internal class OrdersStore(
         )
     }
 
-    private fun changeCreateStatus(value: String) {
-        _state.value = _state.value.copy(
-            createForm = _state.value.createForm.copy(
-                status = value,
-                errorMessage = null
-            )
-        )
-    }
-
     private fun changeCreatePlannedCompletionAt(value: String) {
         _state.value = _state.value.copy(
             createForm = _state.value.createForm.copy(
@@ -357,7 +360,6 @@ internal class OrdersStore(
                         masterId = form.masterId,
                         description = form.description.trim().ifBlank { null },
                         comment = form.comment.trim().ifBlank { null },
-                        status = form.status,
                         plannedCompletionAt = form.plannedCompletionAt.trim().ifBlank { null }
                     )
                 )
@@ -374,6 +376,221 @@ internal class OrdersStore(
                         isSubmitting = false,
                         errorMessage = throwable.message ?: "Не удалось создать заказ"
                     )
+                )
+            }
+        }
+    }
+
+    private fun openEditDialog() {
+        val details = _state.value.selectedOrderDetails ?: return
+
+        scope.launch {
+            runCatching {
+                cachedClients = clientsRepository.getClients()
+                cachedCars = carsRepository.getCars()
+                cachedMasters = mastersRepository.getMasters()
+            }.onSuccess {
+                _state.value = _state.value.copy(
+                    isEditDialogOpen = true,
+                    editForm = CreateOrderForm(
+                        clientId = details.clientId,
+                        carId = details.carId,
+                        masterId = details.masterId,
+                        description = details.rawDescription.orEmpty(),
+                        comment = details.rawComment.orEmpty(),
+                        plannedCompletionAt = details.rawPlannedCompletionAt.orEmpty()
+                    ),
+                    clientOptions = cachedClients.map {
+                        ReferenceOptionUi(it.id, "#${it.id} ${it.fullName}")
+                    },
+                    masterOptions = cachedMasters.map {
+                        ReferenceOptionUi(it.id, "#${it.id} ${it.fullName}")
+                    },
+                    carOptionsForSelectedClient = cachedCars
+                        .filter { it.clientId == details.clientId }
+                        .map { ReferenceOptionUi(it.id, "#${it.id} ${it.brand} ${it.model}") }
+                )
+            }.onFailure { throwable ->
+                _state.value = _state.value.copy(
+                    detailsError = throwable.message ?: "Не удалось загрузить данные для редактирования"
+                )
+            }
+        }
+    }
+
+    private fun closeEditDialog() {
+        _state.value = _state.value.copy(
+            isEditDialogOpen = false,
+            editForm = CreateOrderForm(),
+            carOptionsForSelectedClient = emptyList()
+        )
+    }
+
+    private fun changeEditClient(clientId: Long?) {
+        val filteredCars = cachedCars
+            .filter { it.clientId == clientId }
+            .map {
+                ReferenceOptionUi(it.id, "#${it.id} ${it.brand} ${it.model}")
+            }
+
+        _state.value = _state.value.copy(
+            editForm = _state.value.editForm.copy(
+                clientId = clientId,
+                carId = null,
+                errorMessage = null
+            ),
+            carOptionsForSelectedClient = filteredCars
+        )
+    }
+
+    private fun changeEditCar(carId: Long?) {
+        _state.value = _state.value.copy(
+            editForm = _state.value.editForm.copy(
+                carId = carId,
+                errorMessage = null
+            )
+        )
+    }
+
+    private fun changeEditMaster(masterId: Long?) {
+        _state.value = _state.value.copy(
+            editForm = _state.value.editForm.copy(
+                masterId = masterId,
+                errorMessage = null
+            )
+        )
+    }
+
+    private fun changeEditDescription(value: String) {
+        _state.value = _state.value.copy(
+            editForm = _state.value.editForm.copy(
+                description = value,
+                errorMessage = null
+            )
+        )
+    }
+
+    private fun changeEditComment(value: String) {
+        _state.value = _state.value.copy(
+            editForm = _state.value.editForm.copy(
+                comment = value,
+                errorMessage = null
+            )
+        )
+    }
+
+    private fun changeEditPlannedCompletionAt(value: String) {
+        _state.value = _state.value.copy(
+            editForm = _state.value.editForm.copy(
+                plannedCompletionAt = value,
+                errorMessage = null
+            )
+        )
+    }
+
+    private fun submitEdit() {
+        val orderId = _state.value.selectedOrderId ?: return
+        val form = _state.value.editForm
+
+        when {
+            form.clientId == null -> {
+                _state.value = _state.value.copy(
+                    editForm = form.copy(errorMessage = "Выбери клиента")
+                )
+                return
+            }
+
+            form.carId == null -> {
+                _state.value = _state.value.copy(
+                    editForm = form.copy(errorMessage = "Выбери автомобиль")
+                )
+                return
+            }
+
+            form.plannedCompletionAt.isNotBlank() && !isValidIsoDateTime(form.plannedCompletionAt) -> {
+                _state.value = _state.value.copy(
+                    editForm = form.copy(
+                        errorMessage = "Дата должна быть в формате 2026-03-23T18:30:00"
+                    )
+                )
+                return
+            }
+        }
+
+        scope.launch {
+            _state.value = _state.value.copy(
+                editForm = _state.value.editForm.copy(
+                    isSubmitting = true,
+                    errorMessage = null
+                )
+            )
+
+            runCatching {
+                ordersRepository.updateOrder(
+                    orderId = orderId,
+                    request = UpdateOrderRequest(
+                        clientId = form.clientId,
+                        carId = form.carId,
+                        masterId = form.masterId,
+                        description = form.description.trim().ifBlank { null },
+                        comment = form.comment.trim().ifBlank { null },
+                        plannedCompletionAt = form.plannedCompletionAt.trim().ifBlank { null }
+                    )
+                )
+            }.onSuccess {
+                _state.value = _state.value.copy(
+                    isEditDialogOpen = false,
+                    editForm = CreateOrderForm(),
+                    carOptionsForSelectedClient = emptyList()
+                )
+                loadOrderDetails(orderId)
+                loadOrders(selectOrderId = orderId)
+            }.onFailure { throwable ->
+                _state.value = _state.value.copy(
+                    editForm = _state.value.editForm.copy(
+                        isSubmitting = false,
+                        errorMessage = throwable.message ?: "Не удалось обновить заказ"
+                    )
+                )
+            }
+        }
+    }
+
+    private fun completeSelectedOrder() {
+        val orderId = _state.value.selectedOrderId ?: return
+
+        scope.launch {
+            _state.value = _state.value.copy(isLoadingDetails = true, detailsError = null)
+
+            runCatching {
+                ordersRepository.completeOrder(orderId)
+            }.onSuccess {
+                loadOrderDetails(orderId)
+                loadOrders(selectOrderId = orderId)
+            }.onFailure { throwable ->
+                _state.value = _state.value.copy(
+                    isLoadingDetails = false,
+                    detailsError = throwable.message ?: "Не удалось завершить заказ"
+                )
+            }
+        }
+    }
+
+    private fun cancelSelectedOrder() {
+        val orderId = _state.value.selectedOrderId ?: return
+
+        scope.launch {
+            _state.value = _state.value.copy(isLoadingDetails = true, detailsError = null)
+
+            runCatching {
+                ordersRepository.cancelOrder(orderId)
+            }.onSuccess {
+                loadOrderDetails(orderId)
+                loadOrders(selectOrderId = orderId)
+            }.onFailure { throwable ->
+                _state.value = _state.value.copy(
+                    isLoadingDetails = false,
+                    detailsError = throwable.message ?: "Не удалось отменить заказ"
                 )
             }
         }
@@ -651,15 +868,6 @@ internal class OrdersStore(
         )
     }
 
-    private fun changeAddPaymentStatus(value: String) {
-        _state.value = _state.value.copy(
-            addPaymentForm = _state.value.addPaymentForm.copy(
-                paymentStatus = value,
-                errorMessage = null
-            )
-        )
-    }
-
     private fun submitAddPayment() {
         val orderId = _state.value.selectedOrderId ?: return
         val form = _state.value.addPaymentForm
@@ -684,8 +892,7 @@ internal class OrdersStore(
                     orderId = orderId,
                     request = AddOrderPaymentRequest(
                         amount = form.amount.trim(),
-                        paymentMethod = form.paymentMethod,
-                        paymentStatus = form.paymentStatus
+                        paymentMethod = form.paymentMethod
                     )
                 )
             }.onSuccess {
@@ -721,6 +928,9 @@ internal class OrdersStore(
 
         return OrderDetailsUi(
             id = order.id,
+            clientId = order.clientId,
+            carId = order.carId,
+            masterId = order.masterId,
             clientDisplay = "#${order.clientId} ${toShortName(clientName)}",
             carDisplay = "#${order.carId} $carName",
             masterDisplay = if (order.masterId != null) {
@@ -729,12 +939,16 @@ internal class OrdersStore(
                 "-"
             },
             status = formatOrderStatus(order.status),
-            createdAt = formatDateTime(order.createdAt),
-            plannedCompletionAt = order.plannedCompletionAt?.let(::formatDateTime) ?: "-",
-            completedAt = order.completedAt?.let(::formatDateTime) ?: "-",
+            rawStatus = order.status,
+            createdAt = formatRuDateTime(order.createdAt),
+            rawPlannedCompletionAt = order.plannedCompletionAt,
+            plannedCompletionAt = order.plannedCompletionAt?.let(::formatRuDateTime) ?: "-",
+            completedAt = order.completedAt?.let(::formatRuDateTime) ?: "-",
             totalAmount = order.totalAmount,
             description = order.description ?: "-",
+            rawDescription = order.description,
             comment = order.comment ?: "-",
+            rawComment = order.comment,
             services = details.services.map { item ->
                 OrderServiceUi(
                     serviceDisplay = "#${item.serviceId} ${services[item.serviceId] ?: "Неизвестная услуга"}",
@@ -755,7 +969,8 @@ internal class OrdersStore(
                     amount = payment.amount,
                     paymentMethod = formatPaymentMethod(payment.paymentMethod),
                     paymentStatus = formatPaymentStatus(payment.paymentStatus),
-                    paidAt = payment.paidAt?.let(::formatDateTime) ?: "-"
+                    rawPaymentStatus = payment.paymentStatus,
+                    paidAt = payment.paidAt?.let(::formatRuDateTime) ?: "-"
                 )
             }
         )
@@ -769,21 +984,6 @@ internal class OrdersStore(
             1 -> parts[0]
             2 -> "${parts[0]} ${parts[1].first()}."
             else -> "${parts[0]} ${parts[1].first()}.${parts[2].first()}."
-        }
-    }
-
-    private fun formatDateTime(raw: String): String {
-        return try {
-            val normalized = raw.replace(" ", "T")
-            val dateTime = LocalDateTime.parse(normalized)
-            val day = dateTime.dayOfMonth.toString().padStart(2, '0')
-            val month = dateTime.monthValue.toString().padStart(2, '0')
-            val year = dateTime.year
-            val hour = dateTime.hour.toString().padStart(2, '0')
-            val minute = dateTime.minute.toString().padStart(2, '0')
-            "$day.$month.$year $hour:$minute"
-        } catch (_: Exception) {
-            raw
         }
     }
 

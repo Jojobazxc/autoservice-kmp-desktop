@@ -2,30 +2,55 @@ package com.example.autoservice_desktop.features.auth.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import autoservice_desktop.composeapp.generated.resources.Res
 import autoservice_desktop.composeapp.generated.resources.login_background
+import com.example.autoservice_desktop.features.auth.data.AuthSessionManager
+import com.example.autoservice_desktop.features.auth.presentation.AuthAction
+import com.example.autoservice_desktop.features.auth.presentation.AuthStore
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.koinInject
 
 @Composable
 internal actual fun LoginScreen(
     onLoginSuccess: () -> Unit,
     modifier: Modifier
 ) {
-    var login by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var errorText by rememberSaveable { mutableStateOf<String?>(null) }
+    val store: AuthStore = koinInject()
+    val sessionManager: AuthSessionManager = koinInject()
+    val state by store.state.collectAsState()
+    val session by sessionManager.session.collectAsState()
+
+    LaunchedEffect(session) {
+        if (session != null) {
+            onLoginSuccess()
+        }
+    }
 
     Row(
         modifier = modifier.fillMaxSize()
@@ -75,28 +100,25 @@ internal actual fun LoginScreen(
                     }
 
                     OutlinedTextField(
-                        value = login,
-                        onValueChange = {
-                            login = it
-                            errorText = null
-                        },
-                        label = { Text("Логин или email") },
+                        value = state.login,
+                        onValueChange = { store.dispatch(AuthAction.ChangeLogin(it)) },
+                        label = { Text("Логин") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        enabled = !state.isLoading
                     )
 
                     OutlinedTextField(
-                        value = password,
-                        onValueChange = {
-                            password = it
-                            errorText = null
-                        },
+                        value = state.password,
+                        onValueChange = { store.dispatch(AuthAction.ChangePassword(it)) },
                         label = { Text("Пароль") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        enabled = !state.isLoading
                     )
 
-                    errorText?.let {
+                    state.error?.let {
                         Text(
                             text = it,
                             color = MaterialTheme.colorScheme.error,
@@ -106,19 +128,24 @@ internal actual fun LoginScreen(
 
                     Button(
                         onClick = {
-                            if (login.isBlank() || password.isBlank()) {
-                                errorText = "Заполните логин и пароль"
-                            } else {
-                                onLoginSuccess()
-                            }
+                            store.dispatch(AuthAction.SubmitLogin)
                         },
+                        enabled = !state.isLoading,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Войти")
+                        if (state.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.padding(end = 10.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        }
+                        Text(if (state.isLoading) "Вход..." else "Войти")
                     }
 
                     TextButton(
                         onClick = {},
+                        enabled = !state.isLoading,
                         modifier = Modifier.align(Alignment.End)
                     ) {
                         Text("Забыли пароль?")

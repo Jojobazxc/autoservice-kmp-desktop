@@ -11,7 +11,6 @@ internal sealed interface MastersAction {
     data class UpdateExperienceYears(val value: String) : MastersAction
     data class UpdatePhone(val value: String) : MastersAction
     data class UpdateEmail(val value: String) : MastersAction
-    data class UpdateEmploymentStatus(val value: String) : MastersAction
 
     data object SubmitCreate : MastersAction
 }

@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import com.example.autoservice_desktop.core.ui.AppDialog
 import com.example.autoservice_desktop.core.ui.AppDropdownField
 import com.example.autoservice_desktop.core.ui.formatPaymentMethod
-import com.example.autoservice_desktop.core.ui.formatPaymentStatus
 import com.example.autoservice_desktop.features.orders.presentation.OrdersAction
 import com.example.autoservice_desktop.features.orders.presentation.OrdersState
 
@@ -41,15 +40,6 @@ internal fun AddOrderPaymentDialog(
             options = listOf("CASH", "CARD"),
             optionLabel = ::formatPaymentMethod,
             onValueSelected = { onAction(OrdersAction.ChangeAddPaymentMethod(it)) },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        AppDropdownField(
-            label = "Статус оплаты",
-            selectedValue = form.paymentStatus,
-            options = listOf("PAID", "PENDING", "FAILED"),
-            optionLabel = ::formatPaymentStatus,
-            onValueSelected = { onAction(OrdersAction.ChangeAddPaymentStatus(it)) },
             modifier = Modifier.fillMaxWidth()
         )
 

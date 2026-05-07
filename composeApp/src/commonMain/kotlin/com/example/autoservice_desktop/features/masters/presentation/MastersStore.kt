@@ -30,7 +30,6 @@ internal class MastersStore(
             is MastersAction.UpdateExperienceYears -> updateExperienceYears(action.value)
             is MastersAction.UpdatePhone -> updatePhone(action.value)
             is MastersAction.UpdateEmail -> updateEmail(action.value)
-            is MastersAction.UpdateEmploymentStatus -> updateEmploymentStatus(action.value)
 
             MastersAction.SubmitCreate -> submitCreate()
         }
@@ -74,7 +73,6 @@ internal class MastersStore(
             experienceYearsInput = "",
             phoneInput = "",
             emailInput = "",
-            employmentStatusInput = "ACTIVE",
             createError = null
         )
     }
@@ -99,10 +97,6 @@ internal class MastersStore(
         _state.value = _state.value.copy(emailInput = value)
     }
 
-    private fun updateEmploymentStatus(value: String) {
-        _state.value = _state.value.copy(employmentStatusInput = value)
-    }
-
     private fun submitCreate() {
         val current = _state.value
 
@@ -111,7 +105,6 @@ internal class MastersStore(
         val experienceYears = current.experienceYearsInput.trim().ifBlank { null }?.toIntOrNull()
         val phone = current.phoneInput.trim().ifBlank { null }
         val email = current.emailInput.trim().ifBlank { null }
-        val employmentStatus = current.employmentStatusInput
 
         if (fullName.isBlank()) {
             _state.value = current.copy(createError = "Введите ФИО")
@@ -136,8 +129,7 @@ internal class MastersStore(
                         specialization = specialization,
                         experienceYears = experienceYears,
                         phone = phone,
-                        email = email,
-                        employmentStatus = employmentStatus
+                        email = email
                     )
                 )
             }.onSuccess {
@@ -149,7 +141,6 @@ internal class MastersStore(
                     experienceYearsInput = "",
                     phoneInput = "",
                     emailInput = "",
-                    employmentStatusInput = "ACTIVE",
                     createError = null
                 )
                 loadMasters()

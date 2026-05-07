@@ -8,6 +8,5 @@ internal data class CreateMasterRequest(
     val specialization: String? = null,
     val experienceYears: Int? = null,
     val phone: String? = null,
-    val email: String? = null,
-    val employmentStatus: String = "ACTIVE"
+    val email: String? = null
 )

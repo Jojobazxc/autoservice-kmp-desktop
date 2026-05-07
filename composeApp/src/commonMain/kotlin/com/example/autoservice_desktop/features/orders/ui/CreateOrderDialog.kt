@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.autoservice_desktop.core.ui.AppDialog
 import com.example.autoservice_desktop.core.ui.AppDropdownField
-import com.example.autoservice_desktop.core.ui.formatOrderStatus
 import com.example.autoservice_desktop.features.orders.presentation.OrdersAction
 import com.example.autoservice_desktop.features.orders.presentation.OrdersState
 
@@ -78,15 +77,6 @@ internal fun CreateOrderDialog(
                     )
                 )
             },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        AppDropdownField(
-            label = "Статус",
-            selectedValue = form.status,
-            options = listOf("CREATED", "IN_PROGRESS", "COMPLETED", "PAID", "CANCELED"),
-            optionLabel = ::formatOrderStatus,
-            onValueSelected = { onAction(OrdersAction.ChangeCreateStatus(it)) },
             modifier = Modifier.fillMaxWidth()
         )
 

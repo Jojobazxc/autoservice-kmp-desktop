@@ -200,10 +200,10 @@ private fun RowScope.EmploymentStatusCell(
     ) {
         val background = MaterialTheme.colorScheme.surfaceVariant
 
-        val textColor = if (status == "Активен") {
-            AppColors.Success
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
+        val textColor = when (status) {
+            "Свободен" -> AppColors.Success
+            "Занят" -> AppColors.Warning
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
 
         Text(

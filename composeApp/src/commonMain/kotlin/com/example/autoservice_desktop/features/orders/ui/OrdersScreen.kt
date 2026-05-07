@@ -33,9 +33,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import java.math.BigDecimal
 import com.example.autoservice_desktop.core.ui.AppTableToolbar
 import com.example.autoservice_desktop.core.ui.formatOrderStatus
 import com.example.autoservice_desktop.core.ui.theme.AppColors
+import com.example.autoservice_desktop.features.auth.data.UserRole
+import com.example.autoservice_desktop.features.auth.data.canCancelOrders
+import com.example.autoservice_desktop.features.auth.data.canCompleteOrders
+import com.example.autoservice_desktop.features.auth.data.canEditOrders
+import com.example.autoservice_desktop.features.auth.data.canManageOrderParts
+import com.example.autoservice_desktop.features.auth.data.canManageOrderPayments
+import com.example.autoservice_desktop.features.auth.data.canManageOrderServices
 import com.example.autoservice_desktop.features.orders.presentation.OrderDetailsUi
 import com.example.autoservice_desktop.features.orders.presentation.OrderListItemUi
 import com.example.autoservice_desktop.features.orders.presentation.OrdersAction
@@ -43,7 +51,8 @@ import com.example.autoservice_desktop.features.orders.presentation.OrdersStore
 
 @Composable
 internal fun OrdersScreen(
-    store: OrdersStore
+    store: OrdersStore,
+    role: UserRole
 ) {
     val state by store.state.collectAsState()
 
@@ -103,6 +112,15 @@ internal fun OrdersScreen(
                         onAddService = { store.dispatch(OrdersAction.OpenAddServiceDialog) },
                         onAddPart = { store.dispatch(OrdersAction.OpenAddPartDialog) },
                         onAddPayment = { store.dispatch(OrdersAction.OpenAddPaymentDialog) },
+                        onEdit = { store.dispatch(OrdersAction.OpenEditDialog) },
+                        onComplete = { store.dispatch(OrdersAction.CompleteSelectedOrder) },
+                        onCancel = { store.dispatch(OrdersAction.CancelSelectedOrder) },
+                        canEdit = role.canEditOrders(),
+                        canAddService = role.canManageOrderServices(),
+                        canAddPart = role.canManageOrderParts(),
+                        canAddPayment = role.canManageOrderPayments(),
+                        canComplete = role.canCompleteOrders(),
+                        canCancel = role.canCancelOrders(),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -112,6 +130,13 @@ internal fun OrdersScreen(
 
     if (state.isCreateDialogOpen) {
         CreateOrderDialog(
+            state = state,
+            onAction = store::dispatch
+        )
+    }
+
+    if (state.isEditDialogOpen) {
+        EditOrderDialog(
             state = state,
             onAction = store::dispatch
         )
@@ -244,6 +269,15 @@ private fun OrderDetailsPanel(
     onAddService: () -> Unit,
     onAddPart: () -> Unit,
     onAddPayment: () -> Unit,
+    onEdit: () -> Unit,
+    onComplete: () -> Unit,
+    onCancel: () -> Unit,
+    canEdit: Boolean,
+    canAddService: Boolean,
+    canAddPart: Boolean,
+    canAddPayment: Boolean,
+    canComplete: Boolean,
+    canCancel: Boolean,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -291,6 +325,16 @@ private fun OrderDetailsPanel(
             }
 
             else -> {
+                val isCompositionLocked = details.rawStatus in setOf("COMPLETED", "PAID", "CANCELED")
+                val canShowComplete = canComplete && details.rawStatus == "IN_PROGRESS"
+                val canShowCancel = canCancel && details.rawStatus !in setOf("PAID", "CANCELED")
+                val canShowAddService = canAddService && !isCompositionLocked
+                val canShowAddPart = canAddPart && !isCompositionLocked
+                val canShowEdit = canEdit && !isCompositionLocked
+                val canShowAddPayment = canAddPayment &&
+                    details.rawStatus !in setOf("PAID", "CANCELED") &&
+                    details.hasOutstandingDebt()
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -350,27 +394,70 @@ private fun OrderDetailsPanel(
                         }
                     }
 
+                    if (canShowEdit || canShowComplete || canShowCancel) {
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            if (canShowEdit) {
+                                OutlinedButton(
+                                    onClick = onEdit,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Редактировать")
+                                }
+                            }
+
+                            if (canShowComplete) {
+                                Button(
+                                    onClick = onComplete,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Завершить заказ")
+                                }
+                            }
+
+                            if (canShowCancel) {
+                                OutlinedButton(
+                                    onClick = onCancel,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Отменить заказ")
+                                }
+                            }
+                        }
+                    }
+                    }
+
+                    if (canShowAddService || canShowAddPart) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            if (canShowAddService) {
                             Button(
                                 onClick = onAddService,
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text("Добавить услугу")
                             }
+                            }
 
+                            if (canShowAddPart) {
                             Button(
                                 onClick = onAddPart,
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text("Добавить запчасть")
                             }
+                            }
                         }
                     }
+                    }
 
+                    if (canShowAddPayment) {
                     item {
                         Button(
                             onClick = onAddPayment,
@@ -378,6 +465,7 @@ private fun OrderDetailsPanel(
                         ) {
                             Text("Добавить оплату")
                         }
+                    }
                     }
 
                     item {
@@ -600,6 +688,23 @@ private fun EmptySection() {
         text = "-",
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
+}
+
+private fun OrderDetailsUi.hasOutstandingDebt(): Boolean {
+    val total = totalAmount.toMoneyOrNull() ?: return rawStatus != "PAID"
+    val paid = payments
+        .filter { it.rawPaymentStatus == "PAID" }
+        .mapNotNull { it.amount.toMoneyOrNull() }
+        .fold(BigDecimal.ZERO, BigDecimal::add)
+
+    return paid < total
+}
+
+private fun String.toMoneyOrNull(): BigDecimal? {
+    return trim()
+        .replace(" ", "")
+        .replace(",", ".")
+        .toBigDecimalOrNull()
 }
 
 @Composable

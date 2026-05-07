@@ -7,8 +7,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.autoservice_desktop.core.ui.AppDialog
-import com.example.autoservice_desktop.core.ui.AppDropdownField
-import com.example.autoservice_desktop.core.ui.formatEmploymentStatus
 import com.example.autoservice_desktop.features.masters.presentation.MastersAction
 import com.example.autoservice_desktop.features.masters.presentation.MastersState
 
@@ -62,15 +60,6 @@ internal fun CreateMasterDialog(
             label = { Text("Email") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
-        )
-
-        AppDropdownField(
-            label = "Статус занятости",
-            selectedValue = state.employmentStatusInput,
-            options = listOf("ACTIVE", "INACTIVE"),
-            optionLabel = ::formatEmploymentStatus,
-            onValueSelected = { onAction(MastersAction.UpdateEmploymentStatus(it)) },
-            modifier = Modifier.fillMaxWidth()
         )
 
         state.createError?.let {
